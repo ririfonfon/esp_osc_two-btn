@@ -7,6 +7,23 @@
 ezButton button1(13); // create ezButton object that attach to pin 7;
 ezButton button2(12); // create ezButton object that attach to pin 7;
 
+struct Led
+{
+  // state variables
+  uint8_t pin;
+  bool on;
+
+  // methods
+  void update()
+  {
+    digitalWrite(pin, on ? HIGH : LOW);
+  }
+};
+
+bool master_init = true;
+
+Led onboard_led = {2, false};
+
 // WiFi stuff
 const char *ssid = "riri_new";
 const char *pwd = "B2az41opbn6397";
@@ -27,60 +44,64 @@ String s;
 
 void setup()
 {
-    Serial.begin(115200);
-    button1.setDebounceTime(100);
-    button2.setDebounceTime(100);
-    delay(2000);
+  Serial.begin(115200);
+  button1.setDebounceTime(100);
+  button2.setDebounceTime(100);
+  pinMode(onboard_led.pin, OUTPUT);
+  delay(2000);
 
-    // WiFi stuff (no timeout setting for WiFi)
+  // WiFi stuff (no timeout setting for WiFi)
 #if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_RP2040)
 #ifdef ESP_PLATFORM
-    WiFi.disconnect(true, true); // disable wifi, erase ap info
+  WiFi.disconnect(true, true); // disable wifi, erase ap info
 #else
-    WiFi.disconnect(true); // disable wifi
+  WiFi.disconnect(true); // disable wifi
 #endif
-    delay(1000);
-    WiFi.mode(WIFI_STA);
+  delay(1000);
+  WiFi.mode(WIFI_STA);
 #endif
 
-    WiFi.begin(ssid, pwd);
+  WiFi.begin(ssid, pwd);
 
-    WiFi.config(ip, gateway, subnet);
+  WiFi.config(ip, gateway, subnet);
 
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.print(".");
-        delay(500);
-    }
-    Serial.print("WiFi connected, IP = ");
-    Serial.println(WiFi.localIP());
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.print("WiFi connected, IP = ");
+  Serial.println(WiFi.localIP());
 }
 
 void loop()
 {
-    button1.loop();
-    button2.loop();
+  onboard_led.on = millis() % 2000 < 1000;
+  onboard_led.update();
 
-    if (button1.isPressed())
-    {
-        Serial.println("The button1 is pressed");
-        OscWiFi.send(host, publish_port, "/button1/on", 1);
-    }
+  button1.loop();
+  button2.loop();
 
-    if (button1.isReleased())
-    {
-        Serial.println("The button1 is released");
-        OscWiFi.send(host, publish_port, "/button1/off", 1);
-    }
-    if (button2.isPressed())
-    {
-        Serial.println("The button2 is pressed");
-        OscWiFi.send(host, publish_port, "/button2/on", 1);
-    }
+  if (button1.isPressed())
+  {
+    Serial.println("The button1 is pressed");
+    OscWiFi.send(host, publish_port, "/button1/on", 1);
+  }
 
-    if (button2.isReleased())
-    {
-        Serial.println("The button2 is released");
-        OscWiFi.send(host, publish_port, "/button2/off", 1);
-    }
+  if (button1.isReleased())
+  {
+    Serial.println("The button1 is released");
+    OscWiFi.send(host, publish_port, "/button1/off", 1);
+  }
+  if (button2.isPressed())
+  {
+    Serial.println("The button2 is pressed");
+    OscWiFi.send(host, publish_port, "/button2/on", 1);
+  }
+
+  if (button2.isReleased())
+  {
+    Serial.println("The button2 is released");
+    OscWiFi.send(host, publish_port, "/button2/off", 1);
+  }
 }
